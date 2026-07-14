@@ -23,6 +23,9 @@ def save_sent(sent):
 sent = load_sent()
 
 new_articles = []
+from sources.prtimes import get_prtimes
+
+articles.extend(get_prtimes())
 
 for place, area_list in AREAS.items():
     for area in area_list:
