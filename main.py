@@ -2,7 +2,7 @@ import os
 
 from config import AREAS, KEYWORDS
 from line_notify import send_line
-
+from sources.gogai_net import get_gogai
 from sources.google_news import get_google_news
 from sources.prtimes import get_prtimes
 
@@ -53,7 +53,10 @@ for article in get_prtimes():
             )
             all_articles.append(article)
             break
+# ---------- 号外NET ----------
 
+for article in get_gogai():
+    all_articles.append(article)
 
 # ---------- 重複除去 ----------
 new_articles = []
