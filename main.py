@@ -2,7 +2,9 @@ import os
 
 from config import AREAS, KEYWORDS
 from line_notify import send_line
+
 from sources.google_news import get_google_news
+from sources.prtimes import get_prtimes
 
 SENT_FILE = "sent_store.txt"
 
@@ -22,39 +24,72 @@ def save_sent(sent):
 
 sent = load_sent()
 
-new_articles = []
-from sources.prtimes import get_prtimes
+# 全記事をここに集める
+all_articles = []
 
-articles.extend(get_prtimes())
 
+# ---------- Google News ----------
 for place, area_list in AREAS.items():
     for area in area_list:
-        articles = get_google_news([area], KEYWORDS)
 
-        for article in articles:
-            if article["link"] not in sent:
-                article["place"] = place
-                new_articles.append(article)
-                sent.add(article["link"])
+        news = get_google_news([area], KEYWORDS)
+
+        for article in news:
+            article["place"] = place
+            article["source"] = "Google News"
+            all_articles.append(article)
+
+
+# ---------- PR TIMES ----------
+for article in get_prtimes():
+
+    title = article["title"]
+
+    for place, area_list in AREAS.items():
+        if any(area in title for area in area_list):
+            article["place"] = place
+            article["area"] = next(
+                area for area in area_list if area in title
+            )
+            all_articles.append(article)
+            break
+
+
+# ---------- 重複除去 ----------
+new_articles = []
+
+for article in all_articles:
+
+    if article["link"] in sent:
+        continue
+
+    sent.add(article["link"])
+    new_articles.append(article)
+
 
 save_sent(sent)
+
+
+# ---------- LINE通知 ----------
 
 if not new_articles:
     send_line("今日は新しい開店情報はありませんでした😊")
 
 else:
+
     message = "🆕 新しい開店情報\n\n"
 
     current_place = ""
 
     for article in new_articles[:10]:
 
-        if current_place != article["place"]:
+        if article["place"] != current_place:
             current_place = article["place"]
             message += f"\n🏢 {current_place}\n"
 
         message += (
             f"📍{article['area']}\n"
+            f"【{article['source']}】\n"
             f"{article['title']}\n"
             f"{article['link']}\n\n"
         )
